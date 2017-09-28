@@ -13,16 +13,18 @@
 //Defining simulation parameters
 const double end = 2.0;
 const double step_size = 1E-4;
-const double E_over_V0_max = 1.0;
+const double E_over_V0_max = 1.0-1E-3;
 const double V0_star_max = 10.0;
-const int num_E = 10; //the number of columns (E_over_V0)
-const int num_V = 20; //the number of rows (V0_star)
+const int num_E = 100; //the number of columns (E_over_V0)
+const int num_V = 1000; //the number of rows (V0_star)
 
 
 //Pre-declared functions
 double V(double x);
 gsl_complex k_fun(double x, double E_over_V0, double V0_star); //exp(-ikz)형태를 참조
 double TP(double E_over_V0, double V0_star); //tunneling probability 구하는 함수
+double Ain_fun(double E_over_V0, double V0_star);
+double Aout_fun(double E_over_V0, double V0_star);
 float timedifference_msec(struct timeval t0, struct timeval t1);
 
 
@@ -37,14 +39,16 @@ int main (void)
 
     gettimeofday(&t0, 0);
 
-
     gsl_matrix *E_over_V0_can = gsl_matrix_calloc(num_V, num_E);
     gsl_matrix *V0_star_can = gsl_matrix_calloc(num_V, num_E);
     gsl_matrix *Tunneling_prob = gsl_matrix_calloc(num_V, num_E);
+    gsl_matrix *Ain_can = gsl_matrix_calloc(num_V, num_E);
+    gsl_matrix *Aout_can = gsl_matrix_calloc(num_V, num_E);
 
     for(i=0; i<num_V; i++) //rows
     {
         V0_star = V0_star_max*((double)(i))/((double)(num_V-1));
+
         for(j=0; j<num_E; j++) //columns
         {
             E_over_V0 = E_over_V0_max*((double)(j))/((double)(num_E-1));
@@ -52,24 +56,142 @@ int main (void)
             gsl_matrix_set(E_over_V0_can, i, j, E_over_V0);
             gsl_matrix_set(V0_star_can, i, j, V0_star);
             gsl_matrix_set(Tunneling_prob, i, j, TP(E_over_V0, V0_star) );
+            gsl_matrix_set(Ain_can, i, j, Ain_fun(E_over_V0, V0_star) );
+            gsl_matrix_set(Aout_can, i, j, Aout_fun(E_over_V0, V0_star) );
         }
     }
+
+    FILE *f_1 = fopen("s1.csv", "wt"); // CSV for end, step_size, E_over_V0_max, V0_star_max
+    double s1_mat[4] = {end, step_size, E_over_V0_max, V0_star_max};
+    for(i=0; i<4; i++)
+    {
+        fprintf(f_1, "%lf", s1_mat[i]);
+        if(i==3)
+        {
+            fprintf(f_1, "\n");
+        }
+        else
+        {
+            fprintf(f_1, ",");
+        }
+    }
+    fclose(f_1);
+
+    FILE *f_2 = fopen("s2.csv", "wt"); //CSV for num_E, num_V
+    int s2_mat[2] = {num_E, num_V};
+    for(i=0; i<2; i++)
+    {
+        fprintf(f_2, "%d", s2_mat[i]);
+        if(i==1)
+        {
+            fprintf(f_2, "\n");
+        }
+        else
+        {
+            fprintf(f_2, ",");
+        }
+    }
+    fclose(f_2);
+
+    FILE *f_E = fopen("E_over_V0.csv", "wt"); //CSV for E_over_V0_can
+    for(i=0; i<num_V; i++)
+    {
+        for(j=0; j<num_E; j++)
+        {
+            fprintf(f_E, "%lf", gsl_matrix_get(E_over_V0_can, i, j));
+            if(j==num_E-1)
+            {
+                fprintf(f_E, "\n");
+            }
+            else
+            {
+                fprintf(f_E, ",");
+            }
+        }
+    }
+    fclose(f_E);
+
+    FILE *f_V = fopen("V0_star.csv", "wt"); //CSV for V0_star_can
+    for(i=0; i<num_V; i++)
+    {
+        for(j=0; j<num_E; j++)
+        {
+            fprintf(f_V, "%lf", gsl_matrix_get(V0_star_can, i, j));
+            if(j==num_E-1)
+            {
+                fprintf(f_V, "\n");
+            }
+            else
+            {
+                fprintf(f_V, ",");
+            }
+        }
+    }
+    fclose(f_V);
+
+    FILE *f_TP = fopen("Tunneling_prob.csv", "wt"); //CSV for Tunneling_prob
+    for(i=0; i<num_V; i++)
+    {
+        for(j=0; j<num_E; j++)
+        {
+            fprintf(f_TP, "%lf", gsl_matrix_get(Tunneling_prob, i, j));
+            if(j==num_E-1)
+            {
+                fprintf(f_TP, "\n");
+            }
+            else
+            {
+                fprintf(f_TP, ",");
+            }
+        }
+    }
+    fclose(f_TP);
+
+    FILE *f_Ain = fopen("Ain.csv", "wt"); //CSV for Ain
+    for(i=0; i<num_V; i++)
+    {
+        for(j=0; j<num_E; j++)
+        {
+            fprintf(f_Ain, "%lf", gsl_matrix_get(Ain_can, i, j));
+            if(j==num_E-1)
+            {
+                fprintf(f_Ain, "\n");
+            }
+            else
+            {
+                fprintf(f_Ain, ",");
+            }
+        }
+    }
+    fclose(f_Ain);
+
+    FILE *f_Aout = fopen("Aout.csv", "wt"); //CSV for Aout
+    for(i=0; i<num_V; i++)
+    {
+        for(j=0; j<num_E; j++)
+        {
+            fprintf(f_Aout, "%lf", gsl_matrix_get(Aout_can, i, j));
+            if(j==num_E-1)
+            {
+                fprintf(f_Aout, "\n");
+            }
+            else
+            {
+                fprintf(f_Aout, ",");
+            }
+        }
+    }
+    fclose(f_Aout);
 
     gsl_matrix_free(E_over_V0_can);
     gsl_matrix_free(V0_star_can);
     gsl_matrix_free(Tunneling_prob);
+    gsl_matrix_free(Ain_can);
+    gsl_matrix_free(Aout_can);
 
     gettimeofday(&t1, 0);
 
-
-
     elapsed = timedifference_msec(t0, t1);
-
-    //printf("E_over_V0 : %f\n", gsl_matrix_get(E_over_V0_can , 0, 0));
-    //printf("V0_star : %f\n", gsl_matrix_get(V0_star_can , 0, 0));
-    //printf("투과확률 : %f\n", gsl_matrix_get(Tunneling_prob , 0, 0));
-    //double test = TP(0.5, 1);
-    //printf("%f\n", test);
 
     printf("Code executed in %f milliseconds.\n", elapsed); //ms 단위로 걸린 시간 측정
 
@@ -106,15 +228,11 @@ double TP(double E_over_V0, double V0_star)
     gsl_complex x_delta, T11, T12, T21, T22, r, t;
     gsl_vector *x = gsl_vector_calloc(num_x);
 
-    if( (E_over_V0 == 0.0)&(V0_star == 0.0) ) //물리적으로 의미없음
+    if(E_over_V0 == 0.0) //물리적으로 의미없음
     {
         return 0.0;
     }
-    else if( (E_over_V0 == 0.0)&(V0_star != 0.0) ) //입자에너지가 없음
-    {
-        return 0.0;
-    }
-    else if( (E_over_V0 != 0.0)&(V0_star == 0.0) ) //포텐셜 장벽이 없음
+    else if(V0_star == 0.0) //포텐셜 장벽이 없음
     {
         return 1.0;
     }
@@ -194,6 +312,15 @@ double TP(double E_over_V0, double V0_star)
     }
 
     return T;
-
     }
+}
+
+double Ain_fun(double E_over_V0, double V0_star)
+{
+    return 2.0*sqrt(V0_star*(1.0 - E_over_V0));
+}
+
+double Aout_fun(double E_over_V0, double V0_star)
+{
+    return 0.0;
 }
