@@ -22,6 +22,11 @@ int main(void)
 
 double *linspace(double a, double b, int n)
 {
+    if(n==1)
+    {
+        return a;
+    }
+
     int k;
     double *x = malloc(sizeof(double) *n);
     double del = (b-a) / ((double)(n-1));
