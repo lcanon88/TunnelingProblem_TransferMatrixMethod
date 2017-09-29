@@ -8,12 +8,14 @@ double *linspace(double a, double b, int n);
 
 int main(void)
 {
-    //double *test = linspace(0.0, 1.0, 10);
     int i;
+    int j = 1;
 
-    for(i=0; i<10; i++)
+    double *test = linspace(2, 4, j);
+
+    for(i=0; i<j; i++)
     {
-        printf("%.18f\n", linspace(0.0, 1.0, 10)[i]);
+        printf("%.18f\n", test[i]);
     }
 
     return 0;
@@ -24,7 +26,9 @@ double *linspace(double a, double b, int n)
 {
     if(n==1)
     {
-        return a;
+        double *x = malloc(sizeof(double) *n);
+        x[0]  = a;
+        return x;
     }
 
     int k;
